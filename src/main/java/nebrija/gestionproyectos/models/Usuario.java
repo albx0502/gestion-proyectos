@@ -5,13 +5,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
 
 @Entity
-@Table(name = "usuarios")  // Nombre en la base de datos
+@Table(name = "usuarios")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,7 +22,7 @@ public class Usuario implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 50)
     private String username;
 
     @Column(nullable = false)
@@ -32,12 +33,18 @@ public class Usuario implements UserDetails {
     private Rol rol;
 
     public enum Rol {
-        ADMIN, USUARIO
+        ADMIN, USER
+    }
+
+    public Usuario(String username, String password, Rol rol) {
+        this.username = username;
+        this.password = password;
+        this.rol = rol;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(() -> "ROLE_" + rol.name());
+        return List.of(new SimpleGrantedAuthority("ROLE_" + rol.name())); // Asigna el rol correctamente
     }
 
     @Override

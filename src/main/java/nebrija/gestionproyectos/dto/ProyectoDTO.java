@@ -7,6 +7,7 @@ import java.util.List;
 
 @Data
 public class ProyectoDTO {
+
     private Long id;
 
     @NotBlank(message = "El nombre del proyecto no puede estar vacío")
@@ -17,7 +18,7 @@ public class ProyectoDTO {
     private String descripcion;
 
     @NotNull(message = "La fecha de inicio es obligatoria")
-    @FutureOrPresent(message = "La fecha de inicio no puede ser en el pasado")
+    @PastOrPresent(message = "La fecha de inicio no puede estar en el futuro")
     private LocalDate fechaInicio;
 
     @NotNull(message = "El estado del proyecto es obligatorio")

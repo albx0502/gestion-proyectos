@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Gestión Proyectos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<h1>Test API - Gestión Proyectos</h1>
+
+<div class="container">
+    <h2>Registro</h2>
+    <input type="text" id="regUsername" placeholder="Usuario">
+    <input type="password" id="regPassword" placeholder="Contraseña">
+    <button onclick="register()">Registrarse</button>
+    <p id="regResult"></p>
+</div>
+
+<div class="container">
+    <h2>Login</h2>
+    <input type="text" id="loginUsername" placeholder="Usuario">
+    <input type="password" id="loginPassword" placeholder="Contraseña">
+    <button onclick="login()">Iniciar Sesión</button>
+    <p id="loginResult"></p>
+</div>
+<div class="container">
+    <h2>Crear Proyecto</h2>
+    <input type="text" id="proyectoNombre" placeholder="Nombre del Proyecto">
+    <input type="text" id="proyectoDescripcion" placeholder="Descripción">
+    <input type="date" id="proyectoFecha">
+    <select id="proyectoEstado">
+        <option value="ACTIVO">Activo</option>
+        <option value="EN_PROGRESO">En Progreso</option>
+        <option value="FINALIZADO">Finalizado</option>
+    </select>
+    <button onclick="crearProyecto()">Crear Proyecto</button>
+    <p id="proyectoResult"></p>
+</div>
+
+<div class="container">
+    <h2>Crear Tarea</h2>
+    <input type="text" id="tareaTitulo" placeholder="Título de la Tarea">
+    <input type="text" id="tareaDescripcion" placeholder="Descripción">
+    <input type="date" id="tareaFecha">
+    <select id="tareaEstado">
+        <option value="PENDIENTE">Pendiente</option>
+        <option value="EN_CURSO">En Curso</option>
+        <option value="COMPLETADA">Completada</option>
+    </select>
+    <input type="number" id="tareaProyectoId" placeholder="ID del Proyecto">
+    <button onclick="crearTarea()">Crear Tarea</button>
+    <p id="tareaResult"></p>
+</div>
+
+
+<div class="container">
+    <h2>Hacer una solicitud protegida</h2>
+    <button onclick="getProyectos()">Obtener Proyectos</button>
+    <pre id="apiResponse"></pre>
+</div>
+
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,29 +1,36 @@
 package nebrija.gestionproyectos.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "tareas")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class Tarea {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String titulo;
 
+    @Column(length = 255)
     private String descripcion;
 
+    @Column
     private LocalDate fechaLimite;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private EstadoTarea estado;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // Se carga solo cuando se accede a ella
     @JoinColumn(name = "proyecto_id", nullable = false)
     private Proyecto proyecto;
 
@@ -31,10 +38,6 @@ public class Tarea {
         PENDIENTE, EN_CURSO, COMPLETADA
     }
 
-    // Constructor vacío necesario para JPA
-    public Tarea() {}
-
-    // Constructor con parámetros
     public Tarea(String titulo, String descripcion, LocalDate fechaLimite, EstadoTarea estado, Proyecto proyecto) {
         this.titulo = titulo;
         this.descripcion = descripcion;

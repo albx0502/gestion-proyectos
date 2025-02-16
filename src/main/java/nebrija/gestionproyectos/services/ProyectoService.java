@@ -1,12 +1,15 @@
 package nebrija.gestionproyectos.services;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import nebrija.gestionproyectos.dto.ProyectoDTO;
+import nebrija.gestionproyectos.dto.TareaDTO;
 import nebrija.gestionproyectos.models.Proyecto;
 import nebrija.gestionproyectos.models.Tarea;
 import nebrija.gestionproyectos.repositories.ProyectoRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,17 +19,28 @@ public class ProyectoService {
 
     private final ProyectoRepository proyectoRepository;
 
+    /**
+     * Obtiene todos los proyectos en la base de datos.
+     */
     public List<ProyectoDTO> obtenerTodos() {
-        List<Proyecto> proyectos = proyectoRepository.findAll();
-        return proyectos.stream().map(this::convertirAProyectoDTO).collect(Collectors.toList());
+        return proyectoRepository.findAll()
+                .stream()
+                .map(this::convertirAProyectoDTO)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * Obtiene un proyecto por su ID.
+     */
     public ProyectoDTO obtenerPorId(Long id) {
         Proyecto proyecto = proyectoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proyecto no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Proyecto no encontrado con ID: " + id));
         return convertirAProyectoDTO(proyecto);
     }
 
+    /**
+     * Crea un nuevo proyecto.
+     */
     @Transactional
     public ProyectoDTO crearProyecto(ProyectoDTO dto) {
         Proyecto proyecto = new Proyecto();
@@ -34,28 +48,44 @@ public class ProyectoService {
         proyecto.setDescripcion(dto.getDescripcion());
         proyecto.setFechaInicio(dto.getFechaInicio());
         proyecto.setEstado(Proyecto.EstadoProyecto.valueOf(dto.getEstado()));
-        Proyecto proyectoGuardado = proyectoRepository.save(proyecto);
-        return convertirAProyectoDTO(proyectoGuardado);
+
+        return convertirAProyectoDTO(proyectoRepository.save(proyecto));
     }
 
+    /**
+     * Actualiza un proyecto existente.
+     */
     @Transactional
     public ProyectoDTO actualizarProyecto(Long id, ProyectoDTO dto) {
         Proyecto proyecto = proyectoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proyecto no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Proyecto no encontrado con ID: " + id));
+
         proyecto.setNombre(dto.getNombre());
         proyecto.setDescripcion(dto.getDescripcion());
         proyecto.setFechaInicio(dto.getFechaInicio());
         proyecto.setEstado(Proyecto.EstadoProyecto.valueOf(dto.getEstado()));
+
         return convertirAProyectoDTO(proyectoRepository.save(proyecto));
     }
 
+    /**
+     * Elimina un proyecto por su ID.
+     */
     @Transactional
     public void eliminarProyecto(Long id) {
         Proyecto proyecto = proyectoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Proyecto no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Proyecto no encontrado con ID: " + id));
+
+        if (!proyecto.getTareas().isEmpty()) {
+            throw new IllegalStateException("No se puede eliminar un proyecto con tareas asociadas.");
+        }
+
         proyectoRepository.delete(proyecto);
     }
 
+    /**
+     * Convierte una entidad Proyecto en un DTO.
+     */
     private ProyectoDTO convertirAProyectoDTO(Proyecto proyecto) {
         ProyectoDTO dto = new ProyectoDTO();
         dto.setId(proyecto.getId());
@@ -63,16 +93,23 @@ public class ProyectoService {
         dto.setDescripcion(proyecto.getDescripcion());
         dto.setFechaInicio(proyecto.getFechaInicio());
         dto.setEstado(proyecto.getEstado().name());
-        dto.setTareas(proyecto.getTareas().stream().map(t -> {
-            var tareaDto = new nebrija.gestionproyectos.dto.TareaDTO();
-            tareaDto.setId(t.getId());
-            tareaDto.setTitulo(t.getTitulo());
-            tareaDto.setDescripcion(t.getDescripcion());
-            tareaDto.setFechaLimite(t.getFechaLimite());
-            tareaDto.setEstado(t.getEstado().name());
-            tareaDto.setProyectoId(proyecto.getId());
-            return tareaDto;
-        }).collect(Collectors.toList()));
+        dto.setTareas(proyecto.getTareas().stream()
+                .map(this::convertirATareaDTO)
+                .collect(Collectors.toList()));
         return dto;
+    }
+
+    /**
+     * Convierte una entidad Tarea en un DTO.
+     */
+    private TareaDTO convertirATareaDTO(Tarea tarea) {
+        TareaDTO tareaDto = new TareaDTO();
+        tareaDto.setId(tarea.getId());
+        tareaDto.setTitulo(tarea.getTitulo());
+        tareaDto.setDescripcion(tarea.getDescripcion());
+        tareaDto.setFechaLimite(tarea.getFechaLimite());
+        tareaDto.setEstado(tarea.getEstado().name());
+        tareaDto.setProyectoId(tarea.getProyecto().getId());
+        return tareaDto;
     }
 }

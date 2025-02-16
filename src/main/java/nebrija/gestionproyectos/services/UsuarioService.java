@@ -1,5 +1,6 @@
 package nebrija.gestionproyectos.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import nebrija.gestionproyectos.models.Usuario;
 import nebrija.gestionproyectos.repositories.UsuarioRepository;
@@ -7,27 +8,56 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class UsuarioService implements UserDetailsService {
 
     private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Carga un usuario desde la base de datos por su username para autenticación.
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Usuario usuario = usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + username));
+
         return User.builder()
                 .username(usuario.getUsername())
-                .password(usuario.getPassword()) // Recuerda que la contraseña debe estar encriptada
-                .roles(usuario.getRol().name())  // Suponiendo que tienes un campo `rol` en `Usuario`
+                .password(usuario.getPassword())
+                .roles(usuario.getRol().name()) // Spring Security maneja roles
                 .build();
     }
-    public Usuario obtenerUsuarioPorUsername(String username) {
-        return usuarioRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+
+    /**
+     * Registra un nuevo usuario en la base de datos.
+     */
+    @Transactional
+    public UserDetails registrarUsuario(String username, String password, Usuario.Rol rol) {
+        if (usuarioRepository.findByUsername(username).isPresent()) {
+            throw new IllegalArgumentException("El usuario '" + username + "' ya existe.");
+        }
+
+        Usuario usuario = new Usuario();
+        usuario.setUsername(username);
+        usuario.setPassword(passwordEncoder.encode(password));
+        usuario.setRol(rol);
+
+        usuarioRepository.save(usuario);
+
+        return loadUserByUsername(username);
     }
 
+    /**
+     * Obtiene un usuario por su username.
+     */
+    public Usuario obtenerUsuarioPorUsername(String username) {
+        return usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado: " + username));
+    }
 }
