@@ -7,6 +7,8 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
@@ -25,10 +27,6 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-
-    /**
-     * Genera un token JWT con un tiempo de expiración.
-     */
     public String generateToken(String username) {
         return Jwts.builder()
                 .setSubject(username)
@@ -38,38 +36,24 @@ public class JwtUtil {
                 .compact();
     }
 
-    /**
-     * Valida si el token es correcto y no ha expirado.
-     */
-    public boolean validateToken(String token, String username) {
-        return (username.equals(extractUsername(token)) && !isTokenExpired(token));
+    public boolean validateToken(String token, UserDetails userDetails) {
+        String username = extractUsername(token);
+        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
-    /**
-     * Extrae el nombre de usuario del token JWT.
-     */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    /**
-     * Extrae la fecha de expiración del token JWT.
-     */
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    /**
-     * Método genérico para extraer información del token.
-     */
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    /**
-     * Obtiene todos los claims del token.
-     */
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
@@ -78,9 +62,6 @@ public class JwtUtil {
                 .getBody();
     }
 
-    /**
-     * Verifica si el token ha expirado.
-     */
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }

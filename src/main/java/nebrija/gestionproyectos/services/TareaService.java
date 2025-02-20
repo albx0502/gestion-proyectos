@@ -1,14 +1,18 @@
 package nebrija.gestionproyectos.services;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import nebrija.gestionproyectos.dto.TareaDTO;
 import nebrija.gestionproyectos.models.Proyecto;
 import nebrija.gestionproyectos.models.Tarea;
+import nebrija.gestionproyectos.models.Usuario;
 import nebrija.gestionproyectos.repositories.ProyectoRepository;
 import nebrija.gestionproyectos.repositories.TareaRepository;
+import nebrija.gestionproyectos.repositories.UsuarioRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,32 +23,43 @@ public class TareaService {
 
     private final TareaRepository tareaRepository;
     private final ProyectoRepository proyectoRepository;
+    private final UsuarioRepository usuarioRepository;
 
     /**
-     * Obtiene todas las tareas almacenadas en la base de datos.
+     * Obtiene todas las tareas del usuario autenticado.
      */
-    public List<TareaDTO> obtenerTodas() {
-        return tareaRepository.findAll().stream()
+    public List<TareaDTO> obtenerTodas(Usuario usuario) {  // 🔥 Ajuste aquí
+        return tareaRepository.findByProyectoUsuario(usuario)
+                .stream()
                 .map(this::convertirATareaDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Busca una tarea por su ID.
+     * Obtiene una tarea solo si pertenece a un proyecto del usuario autenticado.
      */
-    public TareaDTO obtenerPorId(Long id) {
+    public TareaDTO obtenerPorId(Long id, Usuario usuario) {  // 🔥 Ajuste aquí
         Tarea tarea = tareaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Tarea no encontrada con ID: " + id));
+
+        if (!tarea.getProyecto().getUsuario().getId().equals(usuario.getId())) {
+            throw new SecurityException("No tienes acceso a esta tarea.");
+        }
+
         return convertirATareaDTO(tarea);
     }
 
     /**
-     * Crea una nueva tarea asociada a un proyecto existente.
+     * Crea una nueva tarea en un proyecto del usuario autenticado.
      */
     @Transactional
-    public TareaDTO crearTarea(TareaDTO dto) {
+    public TareaDTO crearTarea(TareaDTO dto, Usuario usuario) {  // 🔥 Ajuste aquí
         Proyecto proyecto = proyectoRepository.findById(dto.getProyectoId())
                 .orElseThrow(() -> new EntityNotFoundException("Proyecto no encontrado con ID: " + dto.getProyectoId()));
+
+        if (!proyecto.getUsuario().getId().equals(usuario.getId())) {
+            throw new SecurityException("No puedes crear tareas en un proyecto ajeno.");
+        }
 
         Tarea tarea = new Tarea(dto.getTitulo(), dto.getDescripcion(), dto.getFechaLimite(),
                 Tarea.EstadoTarea.valueOf(dto.getEstado()), proyecto);
@@ -53,37 +68,37 @@ public class TareaService {
     }
 
     /**
-     * Actualiza una tarea existente en la base de datos.
+     * Actualiza una tarea solo si pertenece a un proyecto del usuario autenticado.
      */
     @Transactional
-    public TareaDTO actualizarTarea(Long id, TareaDTO dto) {
+    public TareaDTO actualizarTarea(Long id, TareaDTO dto, Usuario usuario) {  // 🔥 Ajuste aquí
         Tarea tarea = tareaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Tarea no encontrada con ID: " + id));
 
-        // Solo actualiza si el valor cambió
-        if (dto.getTitulo() != null && !dto.getTitulo().equals(tarea.getTitulo())) {
-            tarea.setTitulo(dto.getTitulo());
+        if (!tarea.getProyecto().getUsuario().getId().equals(usuario.getId())) {
+            throw new SecurityException("No puedes modificar una tarea en un proyecto ajeno.");
         }
-        if (dto.getDescripcion() != null && !dto.getDescripcion().equals(tarea.getDescripcion())) {
-            tarea.setDescripcion(dto.getDescripcion());
-        }
-        if (dto.getFechaLimite() != null && !dto.getFechaLimite().equals(tarea.getFechaLimite())) {
-            tarea.setFechaLimite(dto.getFechaLimite());
-        }
-        if (dto.getEstado() != null && !dto.getEstado().equals(tarea.getEstado().name())) {
-            tarea.setEstado(Tarea.EstadoTarea.valueOf(dto.getEstado()));
-        }
+
+        tarea.setTitulo(dto.getTitulo());
+        tarea.setDescripcion(dto.getDescripcion());
+        tarea.setFechaLimite(dto.getFechaLimite());
+        tarea.setEstado(Tarea.EstadoTarea.valueOf(dto.getEstado()));
 
         return convertirATareaDTO(tareaRepository.save(tarea));
     }
 
     /**
-     * Elimina una tarea de la base de datos por su ID.
+     * Elimina una tarea solo si pertenece a un proyecto del usuario autenticado.
      */
     @Transactional
-    public void eliminarTarea(Long id) {
+    public void eliminarTarea(Long id, Usuario usuario) {  // 🔥 Ajuste aquí
         Tarea tarea = tareaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Tarea no encontrada con ID: " + id));
+
+        if (!tarea.getProyecto().getUsuario().getId().equals(usuario.getId())) {
+            throw new SecurityException("No puedes eliminar una tarea de un proyecto ajeno.");
+        }
+
         tareaRepository.delete(tarea);
     }
 

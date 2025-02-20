@@ -1,11 +1,17 @@
-const apiBaseUrl = "http://localhost:8080/api/auth";
+const apiBaseUrl = "http://localhost:8080/api";
 let token = "";
 
+// Manejo de autenticación
 async function register() {
     const username = document.getElementById("regUsername").value;
     const password = document.getElementById("regPassword").value;
 
-    const response = await fetch(`${apiBaseUrl}/register`, {
+    if (password.length < 6 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+        document.getElementById("regResult").innerText = "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula y un número.";
+        return;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -19,7 +25,7 @@ async function login() {
     const username = document.getElementById("loginUsername").value;
     const password = document.getElementById("loginPassword").value;
 
-    const response = await fetch(`${apiBaseUrl}/login`, {
+    const response = await fetch(`${apiBaseUrl}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -28,95 +34,152 @@ async function login() {
     const result = await response.json();
     if (response.ok) {
         token = result.token;
-        document.getElementById("loginResult").innerText = "Login exitoso. Token guardado.";
+        document.getElementById("loginResult").innerText = "Login exitoso.";
+        document.getElementById("authContainer").classList.add("hidden");
+        document.getElementById("appContainer").classList.remove("hidden");
+
+        // Obtener y almacenar el usuario autenticado
+        const usuarioId = await obtenerUsuarioId();
+        sessionStorage.setItem("usuarioId", usuarioId); // Guardar en sesión
+
+        cargarProyectos(); // Cargar proyectos en el select de tareas
+
     } else {
         document.getElementById("loginResult").innerText = `Error: ${result.error}`;
     }
 }
+async function obtenerUsuarioId() {
+    if (!token) {
+        console.error("Token no disponible");
+        return null;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/usuarios/me`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    if (response.ok) {
+        const usuario = await response.json();
+        return usuario.id; // Devuelve el ID del usuario autenticado
+    } else {
+        console.error("No se pudo obtener el usuario, error:", response.status);
+        return null;
+    }
+}
+
+
+
+function logout() {
+    token = "";
+    document.getElementById("authContainer").classList.remove("hidden");
+    document.getElementById("appContainer").classList.add("hidden");
+}
+
+// Navegación entre secciones
+function mostrarSeccion(id) {
+    document.querySelectorAll(".seccion").forEach(sec => sec.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+
+    // Cargar proyectos al ir a la sección de tareas
+    if (id === "tareas") {
+        cargarProyectos();
+    }
+}
+
+// Cargar proyectos en select de tareas
+async function cargarProyectos() {
+    if (!token) {
+        console.error("Token no disponible");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/proyectos`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            const proyectos = await response.json();
+            const select = document.getElementById("tareaProyectoId");
+            select.innerHTML = '<option value="">Selecciona un Proyecto</option>'; // Limpia opciones anteriores
+
+            proyectos.forEach(proyecto => {
+                let option = document.createElement("option");
+                option.value = proyecto.id;
+                option.textContent = proyecto.nombre;
+                select.appendChild(option);
+            });
+
+            console.log("Proyectos cargados en el select de tareas:", proyectos); // Debugging
+        } else {
+            console.error("Error al obtener proyectos:", response.status);
+        }
+    } catch (error) {
+        console.error("Error en cargarProyectos():", error);
+    }
+}
 
 async function getProyectos() {
-    const response = await fetch("http://localhost:8080/api/proyectos", {
-        method: "GET",
-        headers: {
-            "Authorization": `Bearer ${token}`
+    try {
+        const response = await fetch(`${apiBaseUrl}/proyectos`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error al obtener proyectos: ${response.status}`);
         }
-    });
 
-    const result = await response.json();
-    document.getElementById("apiResponse").innerText = JSON.stringify(result, null, 2);
+        const proyectos = await response.json();
+        const listaProyectos = document.getElementById("proyectosLista");
+        listaProyectos.textContent = JSON.stringify(proyectos, null, 2); // Formato bonito
+    } catch (error) {
+        console.error(error);
+    }
 }
 
+
+// Gestión de proyectos
 async function crearProyecto() {
-    if (!token) {
-        alert("Debes iniciar sesión primero.");
-        return;
-    }
+    const usuarioId = await obtenerUsuarioId(); // Obtener el ID del usuario autenticado
 
-    const nombre = document.getElementById("proyectoNombre").value;
-    const descripcion = document.getElementById("proyectoDescripcion").value;
-    const fechaInicio = document.getElementById("proyectoFecha").value;
-    const estado = document.getElementById("proyectoEstado").value;
+    const proyecto = {
+        nombre: document.getElementById("proyectoNombre").value,
+        descripcion: document.getElementById("proyectoDescripcion").value,
+        fechaInicio: document.getElementById("proyectoFecha").value,
+        estado: document.getElementById("proyectoEstado").value,
+        usuarioId: usuarioId
+    };
 
-    const response = await fetch("http://localhost:8080/api/proyectos", {
+    const response = await fetch(`${apiBaseUrl}/proyectos`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-            nombre,
-            descripcion,
-            fechaInicio,
-            estado
-        })
+        body: JSON.stringify(proyecto)
     });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        document.getElementById("proyectoResult").innerText = `Error ${response.status}: ${errorText}`;
-        return;
-    }
-
-    const result = await response.json();
-    document.getElementById("proyectoResult").innerText = `Proyecto creado: ${JSON.stringify(result, null, 2)}`;
+    document.getElementById("proyectoResult").innerText = response.ok ? "Proyecto creado." : "Error al crear proyecto.";
 }
 
-
+// Gestión de tareas
 async function crearTarea() {
-    if (!token) {
-        alert("Debes iniciar sesión primero.");
-        return;
-    }
+    const tarea = {
+        titulo: document.getElementById("tareaTitulo").value,
+        descripcion: document.getElementById("tareaDescripcion").value,
+        fechaLimite: document.getElementById("tareaFecha").value,
+        estado: document.getElementById("tareaEstado").value,
+        proyectoId: document.getElementById("tareaProyectoId").value
+    };
 
-    const titulo = document.getElementById("tareaTitulo").value;
-    const descripcion = document.getElementById("tareaDescripcion").value;
-    const fechaLimite = document.getElementById("tareaFecha").value;
-    const estado = document.getElementById("tareaEstado").value;
-    const proyectoId = document.getElementById("tareaProyectoId").value;
-
-    const response = await fetch("http://localhost:8080/api/tareas", {
+    const response = await fetch(`${apiBaseUrl}/tareas`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-            titulo,
-            descripcion,
-            fechaLimite,
-            estado,
-            proyectoId
-        })
+        body: JSON.stringify(tarea)
     });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        document.getElementById("tareaResult").innerText = `Error ${response.status}: ${errorText}`;
-        return;
-    }
-
-    const result = await response.json();
-    document.getElementById("tareaResult").innerText = `Tarea creada: ${JSON.stringify(result, null, 2)}`;
+    document.getElementById("tareaResult").innerText = response.ok ? "Tarea creada." : "Error al crear tarea.";
 }
-
-

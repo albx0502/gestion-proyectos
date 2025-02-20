@@ -1,6 +1,7 @@
 package nebrija.gestionproyectos.repositories;
 
 import nebrija.gestionproyectos.models.Tarea;
+import nebrija.gestionproyectos.models.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,6 +9,9 @@ import java.util.List;
 
 @Repository
 public interface TareaRepository extends JpaRepository<Tarea, Long> {
+
+    // 🔥 Buscar todas las tareas de proyectos de un usuario (SOLUCIÓN AL ERROR)
+    List<Tarea> findByProyectoUsuario(Usuario usuario);
 
     // Buscar todas las tareas asociadas a un proyecto específico
     List<Tarea> findByProyectoId(Long proyectoId);

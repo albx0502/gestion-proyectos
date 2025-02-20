@@ -18,7 +18,6 @@ public class ProyectoDTO {
     private String descripcion;
 
     @NotNull(message = "La fecha de inicio es obligatoria")
-    @PastOrPresent(message = "La fecha de inicio no puede estar en el futuro")
     private LocalDate fechaInicio;
 
     @NotNull(message = "El estado del proyecto es obligatorio")
@@ -26,4 +25,8 @@ public class ProyectoDTO {
     private String estado;
 
     private List<TareaDTO> tareas;
+
+    @NotNull(message = "El usuario propietario del proyecto es obligatorio")
+    @Min(value = 1, message = "El ID del usuario debe ser un número válido mayor que 0")
+    private Long usuarioId;
 }

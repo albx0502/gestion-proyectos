@@ -4,7 +4,6 @@ import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDate;
 
 @Data
@@ -22,7 +21,6 @@ public class TareaDTO {
     private String descripcion;
 
     @NotNull(message = "La fecha límite es obligatoria")
-    @FutureOrPresent(message = "La fecha límite no puede estar en el pasado")
     private LocalDate fechaLimite;
 
     @NotNull(message = "El estado de la tarea es obligatorio")
@@ -32,5 +30,4 @@ public class TareaDTO {
     @NotNull(message = "Debe estar asociada a un proyecto")
     @Min(value = 1, message = "El ID del proyecto debe ser un número válido mayor que 0")
     private Long proyectoId;
-
 }
