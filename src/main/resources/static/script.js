@@ -45,7 +45,7 @@ async function login() {
         cargarProyectos(); // Cargar proyectos en el select de tareas
 
     } else {
-        document.getElementById("loginResult").innerText = `Error: ${result.error}`;
+        document.getElementById("loginResult").innerText = `Error: Credenciales Incorrectas`;
     }
 }
 async function obtenerUsuarioId() {
@@ -98,35 +98,27 @@ async function cargarProyectos() {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
-        const text = await response.text();
-        console.log("Respuesta de la API:", text);
+        if (!response.ok) throw new Error(`Error al obtener proyectos: ${response.status}`);
 
-        const proyectos = JSON.parse(text);
-        console.log("Proyectos obtenidos:", proyectos);
+        const proyectos = await response.json();
+        const select = document.getElementById("tareaProyectoId");
 
-        // Esperar a que el DOM esté listo
-        document.addEventListener("DOMContentLoaded", () => {
-            const select = document.getElementById("tareaProyectoId");
-            if (!select) {
-                console.error("No se encontró el select de proyectos en tareas.");
-                return;
-            }
+        if (!select) {
+            console.error("No se encontró el select de proyectos en tareas.");
+            return;
+        }
 
-            select.innerHTML = '<option value="">Selecciona un Proyecto</option>'; // Limpia opciones anteriores
-
-            proyectos.forEach(proyecto => {
-                let option = document.createElement("option");
-                option.value = proyecto.id;
-                option.textContent = proyecto.nombre;
-                select.appendChild(option);
-            });
+        select.innerHTML = '<option value="">Selecciona un Proyecto</option>';
+        proyectos.forEach(proyecto => {
+            let option = document.createElement("option");
+            option.value = proyecto.id;
+            option.textContent = proyecto.nombre;
+            select.appendChild(option);
         });
     } catch (error) {
         console.error("Error en cargarProyectos():", error);
     }
 }
-
-
 
 async function getProyectos() {
     try {
@@ -134,17 +126,53 @@ async function getProyectos() {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
-        if (!response.ok) {
-            throw new Error(`Error al obtener proyectos: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Error al obtener proyectos: ${response.status}`);
 
         const proyectos = await response.json();
         const listaProyectos = document.getElementById("proyectosLista");
-        listaProyectos.textContent = JSON.stringify(proyectos, null, 2); // Formato bonito
+        listaProyectos.innerHTML = ""; // Limpiar antes de agregar nuevas tarjetas
+
+        proyectos.forEach(proyecto => {
+            // Contenedor de la tarjeta
+            const card = document.createElement("div");
+            card.classList.add("proyecto-card");
+
+            // Contenido de la tarjeta
+            card.innerHTML = `
+                <h3>${proyecto.nombre}</h3>
+                <p><strong>ID:</strong> ${proyecto.id}</p>
+                <p><strong>Descripción:</strong> ${proyecto.descripcion}</p>
+                <p><strong>Fecha de inicio:</strong> ${proyecto.fechaInicio}</p>
+                <p><strong>Estado:</strong> ${proyecto.estado}</p>
+                <p><strong>Usuario ID:</strong> ${proyecto.usuarioId}</p>
+            `;
+
+            // Botón de editar
+            const btnEditar = document.createElement("button");
+            btnEditar.textContent = "Editar";
+            btnEditar.classList.add("btn-editar");
+            btnEditar.onclick = () => editarProyecto(proyecto.id, proyecto.nombre, proyecto.descripcion, proyecto.fechaInicio, proyecto.estado);
+
+            // Botón de eliminar
+            const btnEliminar = document.createElement("button");
+            btnEliminar.textContent = "Eliminar";
+            btnEliminar.classList.add("btn-eliminar");
+            btnEliminar.onclick = () => eliminarProyecto(proyecto.id);
+
+            // Agregar botones a la tarjeta
+            card.appendChild(btnEditar);
+            card.appendChild(btnEliminar);
+
+
+            // Agregar tarjeta a la lista
+            listaProyectos.appendChild(card);
+        });
+
     } catch (error) {
-        console.error(error);
+        console.error("Error en getProyectos():", error);
     }
 }
+
 
 
 // Gestión de proyectos
@@ -170,27 +198,157 @@ async function crearProyecto() {
 
     document.getElementById("proyectoResult").innerText = response.ok ? "Proyecto creado." : "Error al crear proyecto.";
 }
+
+async function editarProyecto(id, nombre, descripcion, fechaInicio, estado) {
+    const nuevoNombre = prompt("Nuevo nombre:", nombre);
+    const nuevaDescripcion = prompt("Nueva descripción:", descripcion);
+    const nuevaFecha = prompt("Nueva fecha de inicio (YYYY-MM-DD):", fechaInicio);
+    const nuevoEstado = prompt("Nuevo estado (ACTIVO, EN_PROGRESO, FINALIZADO):", estado);
+
+    if (!nuevoNombre || !nuevaDescripcion || !nuevaFecha || !nuevoEstado) {
+        alert("Todos los campos son obligatorios.");
+        return;
+    }
+
+    const proyectoActualizado = {
+        nombre: nuevoNombre,
+        descripcion: nuevaDescripcion,
+        fechaInicio: nuevaFecha,
+        estado: nuevoEstado
+    };
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/proyectos/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(proyectoActualizado)
+        });
+
+        if (response.ok) {
+            alert("Proyecto actualizado.");
+            getProyectos();
+        } else {
+            alert("Error al actualizar el proyecto.");
+        }
+    } catch (error) {
+        console.error("Error en editarProyecto():", error);
+    }
+}
+
+async function eliminarProyecto(id) {
+    if (!confirm("¿Estás seguro de que deseas eliminar este proyecto?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/proyectos/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            alert("Proyecto eliminado.");
+            cargarProyectos();
+        } else {
+            alert("No se pudo eliminar el proyecto. Asegúrate de que no tenga tareas asociadas.");
+        }
+    } catch (error) {
+        console.error("Error en eliminarProyecto():", error);
+    }
+}
+
+// Obtener lista de tareas
 async function getTareas() {
     try {
         const response = await fetch(`${apiBaseUrl}/tareas`, {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
-        if (!response.ok) {
-            throw new Error(`Error al obtener tareas: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Error al obtener tareas: ${response.status}`);
 
         const tareas = await response.json();
-        console.log("Tareas obtenidas:", tareas);
-
         const listaTareas = document.getElementById("tareasLista");
-        if (listaTareas) {
-            listaTareas.textContent = JSON.stringify(tareas, null, 2);
-        }
+        listaTareas.innerHTML = ""; // Limpiar antes de agregar nuevas tarjetas
+
+        tareas.forEach(tarea => {
+            // Contenedor de la tarjeta
+            const card = document.createElement("div");
+            card.classList.add("tarea-card");
+
+            // Contenido de la tarjeta
+            card.innerHTML = `
+                <h3>${tarea.nombre}</h3>
+                <p><strong>ID:</strong> ${tarea.id}</p>
+                <p><strong>Descripción:</strong> ${tarea.descripcion}</p>
+                <p><strong>Fecha límite:</strong> ${tarea.fechaLimite}</p>
+                <p><strong>Estado:</strong> ${tarea.estado}</p>
+                <p><strong>Proyecto ID:</strong> ${tarea.proyectoId}</p>
+            `;
+
+            // Botón de editar
+            const btnEditar = document.createElement("button");
+            btnEditar.textContent = "Editar";
+            btnEditar.classList.add("btn-editar");
+            btnEditar.onclick = () => editarTarea(tarea.id, tarea.titulo, tarea.descripcion, tarea.fechaLimite, tarea.estado);
+
+
+            // Botón de eliminar
+            const btnEliminar = document.createElement("button");
+            btnEliminar.textContent = "Eliminar";
+            btnEliminar.classList.add("btn-eliminar");
+            btnEliminar.onclick = () => eliminarTarea(tarea.id);
+
+            // Agregar botón a la tarjeta
+            card.appendChild(btnEditar)
+            card.appendChild(btnEliminar);
+
+            // Agregar tarjeta a la lista
+            listaTareas.appendChild(card);
+        });
+
     } catch (error) {
         console.error("Error en getTareas():", error);
     }
 }
+
+async function cargarTareas() {
+    if (!token) {
+        console.error("Token no disponible");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/tareas`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error(`Error al obtener tareas: ${response.status}`);
+
+        const tareas = await response.json();
+        const select = document.getElementById("proyectoTareaId");
+
+        if (!select) {
+            console.error("No se encontró el select de tareas en proyectos.");
+            return;
+        }
+
+        select.innerHTML = '<option value="">Selecciona una Tarea</option>';
+        tareas.forEach(tarea => {
+            let option = document.createElement("option");
+            option.value = tarea.id;
+            option.textContent = tarea.titulo;
+            select.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error("Error en cargarTareas():", error);
+    }
+}
+
+
 
 
 // Gestión de tareas
@@ -214,3 +372,64 @@ async function crearTarea() {
 
     document.getElementById("tareaResult").innerText = response.ok ? "Tarea creada." : "Error al crear tarea.";
 }
+async function editarTarea(id, titulo, descripcion, fechaLimite, estado) {
+    const nuevoTitulo = prompt("Nuevo título:", titulo);
+    const nuevaDescripcion = prompt("Nueva descripción:", descripcion);
+    const nuevaFechaLimite = prompt("Nueva fecha límite (YYYY-MM-DD):", fechaLimite);
+    const nuevoEstado = prompt("Nuevo estado (PENDIENTE, EN_CURSO, COMPLETADA):", estado);
+
+    if (!nuevoTitulo || !nuevaDescripcion || !nuevaFechaLimite || !nuevoEstado) {
+        alert("Todos los campos son obligatorios.");
+        return;
+    }
+
+    const tareaActualizada = {
+        titulo: nuevoTitulo,
+        descripcion: nuevaDescripcion,
+        fechaLimite: nuevaFechaLimite,
+        estado: nuevoEstado
+    };
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/tareas/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(tareaActualizada)
+        });
+
+        if (response.ok) {
+            alert("Tarea actualizada.");
+            getTareas();
+        } else {
+            alert("Error al actualizar la tarea.");
+        }
+    } catch (error) {
+        console.error("Error en editarTarea():", error);
+    }
+}
+
+async function eliminarTarea(id) {
+    if (!confirm("¿Estás seguro de que deseas eliminar esta tarea?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiBaseUrl}/tareas/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            alert("Tarea eliminada.");
+            cargarTareas();
+        } else {
+            alert("No se pudo eliminar la tarea.");
+        }
+    } catch (error) {
+        console.error("Error en eliminarTarea():", error);
+    }
+}
+

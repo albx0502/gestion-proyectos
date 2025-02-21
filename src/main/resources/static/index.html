@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Proyectos</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:,">  <!-- Solución para el error del favicon -->
 </head>
 <body>
+
 <h1>Gestión de Proyectos</h1>
 
 <!-- Contenedor de autenticación -->
@@ -32,6 +34,7 @@
         <button onclick="logout()">Cerrar Sesión</button>
     </nav>
 
+    <!-- Sección de Proyectos -->
     <div id="proyectos" class="seccion hidden">
         <h2>Gestión de Proyectos</h2>
         <input type="text" id="proyectoNombre" placeholder="Nombre del Proyecto">
@@ -45,9 +48,10 @@
         <button onclick="crearProyecto()">Crear Proyecto</button>
         <p id="proyectoResult"></p>
         <button onclick="getProyectos()">Ver Proyectos</button>
-        <pre id="proyectosLista"></pre>
+        <div id="proyectosLista"></div>  <!-- Corregido de <pre> a <div> -->
     </div>
 
+    <!-- Sección de Tareas -->
     <div id="tareas" class="seccion hidden">
         <h2>Gestión de Tareas</h2>
         <input type="text" id="tareaTitulo" placeholder="Título de la Tarea">
@@ -64,7 +68,7 @@
         <button onclick="crearTarea()">Crear Tarea</button>
         <p id="tareaResult"></p>
         <button onclick="getTareas()">Ver Tareas</button>
-        <pre id="tareasLista"></pre>
+        <div id="tareasLista"></div>  <!-- Corregido de <pre> a <div> -->
     </div>
 </div>
 

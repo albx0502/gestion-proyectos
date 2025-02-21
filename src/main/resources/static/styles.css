@@ -61,3 +61,57 @@ nav button:hover {
 .seccion {
     margin-top: 20px;
 }
+.tarea-item {
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px 0;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-container {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-editar {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 13px;
+    transition: background 0.3s ease;
+}
+
+.btn-editar:hover {
+    background-color: #388e3c;
+}
+
+.btn-eliminar {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 13px;
+    transition: background 0.3s ease;
+}
+
+.btn-eliminar:hover {
+    background-color: #cc0000;
+}
+
+#listaTareas {
+    list-style: none;
+    padding: 0;
+}
