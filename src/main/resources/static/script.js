@@ -98,9 +98,20 @@ async function cargarProyectos() {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
-        if (response.ok) {
-            const proyectos = await response.json();
+        const text = await response.text();
+        console.log("Respuesta de la API:", text);
+
+        const proyectos = JSON.parse(text);
+        console.log("Proyectos obtenidos:", proyectos);
+
+        // Esperar a que el DOM esté listo
+        document.addEventListener("DOMContentLoaded", () => {
             const select = document.getElementById("tareaProyectoId");
+            if (!select) {
+                console.error("No se encontró el select de proyectos en tareas.");
+                return;
+            }
+
             select.innerHTML = '<option value="">Selecciona un Proyecto</option>'; // Limpia opciones anteriores
 
             proyectos.forEach(proyecto => {
@@ -109,15 +120,13 @@ async function cargarProyectos() {
                 option.textContent = proyecto.nombre;
                 select.appendChild(option);
             });
-
-            console.log("Proyectos cargados en el select de tareas:", proyectos); // Debugging
-        } else {
-            console.error("Error al obtener proyectos:", response.status);
-        }
+        });
     } catch (error) {
         console.error("Error en cargarProyectos():", error);
     }
 }
+
+
 
 async function getProyectos() {
     try {
@@ -161,6 +170,28 @@ async function crearProyecto() {
 
     document.getElementById("proyectoResult").innerText = response.ok ? "Proyecto creado." : "Error al crear proyecto.";
 }
+async function getTareas() {
+    try {
+        const response = await fetch(`${apiBaseUrl}/tareas`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error al obtener tareas: ${response.status}`);
+        }
+
+        const tareas = await response.json();
+        console.log("Tareas obtenidas:", tareas);
+
+        const listaTareas = document.getElementById("tareasLista");
+        if (listaTareas) {
+            listaTareas.textContent = JSON.stringify(tareas, null, 2);
+        }
+    } catch (error) {
+        console.error("Error en getTareas():", error);
+    }
+}
+
 
 // Gestión de tareas
 async function crearTarea() {
